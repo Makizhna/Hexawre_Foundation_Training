@@ -1,3 +1,6 @@
+create database sisdb;
+use sisdb;
+
 CREATE TABLE Students (
     student_id INT PRIMARY KEY,
     first_name VARCHAR(50) NOT NULL,
@@ -5,6 +8,38 @@ CREATE TABLE Students (
     date_of_birth DATE NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
     phone_number VARCHAR(15) UNIQUE NOT NULL
+);
+
+CREATE TABLE Courses (
+    course_id VARCHAR(5) PRIMARY KEY,
+    course_name VARCHAR(100) NOT NULL,
+    credits INT NOT NULL,
+    teacher_id INT,
+    FOREIGN KEY (teacher_id) REFERENCES Teacher(teacher_id) 
+);
+
+CREATE TABLE Teacher (
+    teacher_id INT PRIMARY KEY,
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL
+);
+
+CREATE TABLE Enrollments (
+    enrollment_id VARCHAR(5) PRIMARY KEY,
+    student_id INT,
+    course_id VARCHAR(5),
+    enrollment_date DATE NOT NULL,
+    FOREIGN KEY (student_id) REFERENCES Students(student_id) ,
+    FOREIGN KEY (course_id) REFERENCES Courses(course_id) 
+);
+
+CREATE TABLE Payments (
+    payment_id INT PRIMARY KEY,
+    student_id INT,
+    amount DECIMAL(10,2) NOT NULL,
+    payment_date DATE NOT NULL,
+    FOREIGN KEY (student_id) REFERENCES Students(student_id) 
 );
 
 INSERT INTO Students (student_id, first_name, last_name, date_of_birth, email, phone_number) VALUES
@@ -19,13 +54,6 @@ INSERT INTO Students (student_id, first_name, last_name, date_of_birth, email, p
 (910, 'Lohith', 'Aksha', '1993-11-22', 'lohithaksha12@gmail.com', '9012345678'),
 (1010, 'Isaac', 'Newton', '1998-04-05', 'isaacnetwon100@gmail.com', '8123456789');
 
-CREATE TABLE Courses (
-    course_id VARCHAR(5) PRIMARY KEY,
-    course_name VARCHAR(100) NOT NULL,
-    credits INT NOT NULL,
-    teacher_id INT,
-    FOREIGN KEY (teacher_id) REFERENCES Teacher(teacher_id) 
-);
 
 
 INSERT INTO Courses (course_id, course_name, credits, teacher_id) VALUES
@@ -42,14 +70,6 @@ INSERT INTO Courses (course_id, course_name, credits, teacher_id) VALUES
 
 
 
-
-CREATE TABLE Teacher (
-    teacher_id INT PRIMARY KEY,
-    first_name VARCHAR(50) NOT NULL,
-    last_name VARCHAR(50) NOT NULL,
-    email VARCHAR(100) UNIQUE NOT NULL
-);
-
 INSERT INTO Teacher (teacher_id, first_name, last_name, email) VALUES
 (1, 'Reachel', 'Merlin', 'reachelmerlin@gmail.com'),
 (2, 'Aashwa', 'Damin', 'aashwadamin@gmail.com'),
@@ -63,17 +83,6 @@ INSERT INTO Teacher (teacher_id, first_name, last_name, email) VALUES
 (10, 'Evangelin', 'Jenifer', 'evejeni23@gmail.com');
 
 
-select * from teacher;
-
-
-CREATE TABLE Enrollments (
-    enrollment_id VARCHAR(5) PRIMARY KEY,
-    student_id INT,
-    course_id VARCHAR(5),
-    enrollment_date DATE NOT NULL,
-    FOREIGN KEY (student_id) REFERENCES Students(student_id) ,
-    FOREIGN KEY (course_id) REFERENCES Courses(course_id) 
-);
 
 INSERT INTO Enrollments (enrollment_id, student_id, course_id, enrollment_date) VALUES
 ('E01', 110, 'C01', '2024-01-10'),
@@ -88,15 +97,6 @@ INSERT INTO Enrollments (enrollment_id, student_id, course_id, enrollment_date) 
 ('E10', 1010 ,'C10' ,'2024-01-28');
 
 
-select * from enrollments;
-
-CREATE TABLE Payments (
-    payment_id INT PRIMARY KEY,
-    student_id INT,
-    amount DECIMAL(10,2) NOT NULL,
-    payment_date DATE NOT NULL,
-    FOREIGN KEY (student_id) REFERENCES Students(student_id) 
-);
 INSERT INTO Payments (payment_id, student_id, amount, payment_date) VALUES
 (11, 110, 500.00, '2024-02-10'),
 (22, 210, 600.00, '2024-02-12'),
@@ -109,7 +109,5 @@ INSERT INTO Payments (payment_id, student_id, amount, payment_date) VALUES
 (99, 910, 300.00, '2024-02-26'),
 (100, 1010, 750.00, '2024-02-28');
 
-
-select * from payments;
 
 
