@@ -7,6 +7,45 @@ CREATE TABLE Students (
     phone_number VARCHAR(15) UNIQUE NOT NULL
 );
 
+
+CREATE TABLE Courses (
+    course_id VARCHAR(5) PRIMARY KEY,
+    course_name VARCHAR(100) NOT NULL,
+    credits INT NOT NULL,
+    teacher_id INT,
+    FOREIGN KEY (teacher_id) REFERENCES Teacher(teacher_id) 
+);
+
+
+
+CREATE TABLE Teacher (
+    teacher_id INT PRIMARY KEY,
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL
+);
+
+
+CREATE TABLE Enrollments (
+    enrollment_id VARCHAR(5) PRIMARY KEY,
+    student_id INT,
+    course_id VARCHAR(5),
+    enrollment_date DATE NOT NULL,
+    FOREIGN KEY (student_id) REFERENCES Students(student_id) ,
+    FOREIGN KEY (course_id) REFERENCES Courses(course_id) 
+);
+
+
+CREATE TABLE Payments (
+    payment_id INT PRIMARY KEY,
+    student_id INT,
+    amount DECIMAL(10,2) NOT NULL,
+    payment_date DATE NOT NULL,
+    FOREIGN KEY (student_id) REFERENCES Students(student_id) 
+);
+
+
+
 INSERT INTO Students (student_id, first_name, last_name, date_of_birth, email, phone_number) VALUES
 (110, 'Hughie', 'Campbell', '1995-08-15', 'hughie.campbell@gmail.com', '9837567890'),
 (210, 'Billy', 'Butcher', '1998-06-20', 'billy.butcher@gmail.com', '7345678901'),
@@ -19,13 +58,6 @@ INSERT INTO Students (student_id, first_name, last_name, date_of_birth, email, p
 (910, 'Lohith', 'Aksha', '1993-11-22', 'lohithaksha12@gmail.com', '9012345678'),
 (1010, 'Isaac', 'Newton', '1998-04-05', 'isaacnetwon100@gmail.com', '8123456789');
 
-CREATE TABLE Courses (
-    course_id VARCHAR(5) PRIMARY KEY,
-    course_name VARCHAR(100) NOT NULL,
-    credits INT NOT NULL,
-    teacher_id INT,
-    FOREIGN KEY (teacher_id) REFERENCES Teacher(teacher_id) 
-);
 
 
 INSERT INTO Courses (course_id, course_name, credits, teacher_id) VALUES
@@ -42,14 +74,6 @@ INSERT INTO Courses (course_id, course_name, credits, teacher_id) VALUES
 
 
 
-
-CREATE TABLE Teacher (
-    teacher_id INT PRIMARY KEY,
-    first_name VARCHAR(50) NOT NULL,
-    last_name VARCHAR(50) NOT NULL,
-    email VARCHAR(100) UNIQUE NOT NULL
-);
-
 INSERT INTO Teacher (teacher_id, first_name, last_name, email) VALUES
 (1, 'Reachel', 'Merlin', 'reachelmerlin@gmail.com'),
 (2, 'Aashwa', 'Damin', 'aashwadamin@gmail.com'),
@@ -63,17 +87,7 @@ INSERT INTO Teacher (teacher_id, first_name, last_name, email) VALUES
 (10, 'Evangelin', 'Jenifer', 'evejeni23@gmail.com');
 
 
-select * from teacher;
 
-
-CREATE TABLE Enrollments (
-    enrollment_id VARCHAR(5) PRIMARY KEY,
-    student_id INT,
-    course_id VARCHAR(5),
-    enrollment_date DATE NOT NULL,
-    FOREIGN KEY (student_id) REFERENCES Students(student_id) ,
-    FOREIGN KEY (course_id) REFERENCES Courses(course_id) 
-);
 
 INSERT INTO Enrollments (enrollment_id, student_id, course_id, enrollment_date) VALUES
 ('E01', 110, 'C01', '2024-01-10'),
@@ -88,15 +102,7 @@ INSERT INTO Enrollments (enrollment_id, student_id, course_id, enrollment_date) 
 ('E10', 1010 ,'C10' ,'2024-01-28');
 
 
-select * from enrollments;
 
-CREATE TABLE Payments (
-    payment_id INT PRIMARY KEY,
-    student_id INT,
-    amount DECIMAL(10,2) NOT NULL,
-    payment_date DATE NOT NULL,
-    FOREIGN KEY (student_id) REFERENCES Students(student_id) 
-);
 INSERT INTO Payments (payment_id, student_id, amount, payment_date) VALUES
 (11, 110, 500.00, '2024-02-10'),
 (22, 210, 600.00, '2024-02-12'),
@@ -110,36 +116,4 @@ INSERT INTO Payments (payment_id, student_id, amount, payment_date) VALUES
 (100, 1010, 750.00, '2024-02-28');
 
 
-select * from payments;
 
-use sisdb;
-INSERT INTO Students (student_id,first_name, last_name, date_of_birth, email, phone_number) VALUES
-(1011, 'Firthose', 'Banu', '1995-08-15', 'firthosebanu@example.com', '7564667890');
-
-INSERT INTO Enrollments (enrollment_id, student_id, course_id, enrollment_date)
-VALUES ('E11', 1011, 'C01', '2024-03-01');
-
-
-UPDATE Teacher
-SET email = 'hello.reachelmerlin@gmail.com'
-WHERE teacher_id = 1;
-
-
-DELETE FROM Enrollments
-WHERE student_id = 110 AND course_id = 'C01';
-
-UPDATE Courses
-SET teacher_id = 2
-WHERE course_id = 'C09';
-
-
-DELETE FROM Payments WHERE student_id = 210;
-DELETE FROM Enrollments
-WHERE student_id = 210;
-DELETE FROM Students
-WHERE student_id = 210;
-
-
-UPDATE Payments
-SET amount = 750.00
-WHERE payment_id = 22;
