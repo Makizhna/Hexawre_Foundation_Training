@@ -45,7 +45,7 @@ INSERT INTO Crime (CrimeID, IncidentType, IncidentDate, Location, Description, S
 INSERT INTO Victim (VictimID, CrimeID, Name,Age, ContactInfo, Injuries) VALUES 
 (101, 1, 'Moshina', 30,'moshina@gmail.com', 'Minor injuries'), 
 (201, 2, 'Aashwa Damin',27, 'aashwa$damin@gmail.com', 'Deceased'), 
-(301, 3, 'Firthose',35, 'firthose23@gmail.com', 'None'),
+(301, 3, 'John Doe',35, 'johndoe@gmail.com', 'None'),
 (401, 4, 'Afrin Banu',37, 'afrinbanu@gmail.com', 'Bruises'),
 (501, 5, 'Felci Christina',45, 'felci56@gmail.com', 'Fractured arm'),
 (601, 6, 'Kalai Sudar',36, 'kalai78@gmail.com', 'Financial loss');
@@ -78,13 +78,6 @@ select incidenttype, count(*) as count from crime
 where status = 'open'
 group by incidenttype;
 
-
-SET SQL_SAFE_UPDATES = 0;
-
-
-UPDATE Victim 
-SET Name = 'John Doe' 
-WHERE Name = 'Firthose';
 
 
 select name from victim where name like '%doe%'union select name from suspect where name like '%doe%';
@@ -128,29 +121,34 @@ select c.*, v.name as victim_name, s.name as suspect_name from crime c
 left join victim v on c.crimeid = v.crimeid
 left join suspect s on c.crimeid = s.crimeid;
 
+
 select distinct c.* from crime c
 join victim v on c.crimeid = v.crimeid
 join suspect s on c.crimeid = s.crimeid
 where s.age > v.age;                                   
 
+
 select name, count(*) as incident_count from suspect group by name
 having count(*) > 1;
 
+
 select * from crime where crimeid not in (select distinct crimeid from suspect);
+
 
 select *
 from crime
 where incidenttype = 'homicide'
 and crimeid in (select crimeid from crime where incidenttype = 'robbery');
 
+
 select c.*, coalesce(s.name, 'no suspect') as suspect_name
 from crime c
 left join suspect s on c.crimeid = s.crimeid;
+
 
 select distinct s.*
 from suspect s
 join crime c on s.crimeid = c.crimeid
 where c.incidenttype in ('robbery', 'assault');
-
 
 
