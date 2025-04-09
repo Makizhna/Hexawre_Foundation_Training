@@ -1,23 +1,15 @@
 package util;
 
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Properties;
 
-// Utility class to read DB properties from file
-
 public class PropertyUtil {
-    public static String getPropertyString() throws IOException {
+    public static String getConnectionString(String filename) throws IOException {
         Properties props = new Properties();
-
-        // Load from classpath 
-        InputStream input = PropertyUtil.class.getClassLoader().getResourceAsStream("db.properties");
-
-        if (input == null) {
-            throw new IOException("db.properties not found in classpath");
+        try (FileInputStream fis = new FileInputStream(filename)) {
+            props.load(fis);
         }
-
-        props.load(input);
 
         String host = props.getProperty("hostname");
         String port = props.getProperty("port");
