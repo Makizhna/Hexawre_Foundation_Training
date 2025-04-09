@@ -11,7 +11,7 @@ import java.util.Scanner;
 public class MainModule {
 
     public static void main(String[] args) {
-        IHospitalServiceImpl service = new IHospitalServiceImpl();
+        IHospitalServiceImpl service = new IHospitalServiceImpl("src/db.properties");
         Scanner sc = new Scanner(System.in);
         int choice;
 
