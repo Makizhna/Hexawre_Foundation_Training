@@ -15,8 +15,17 @@ public class IHospitalServiceImpl implements IHospitalService {
 
     private Connection conn;
 
+    public IHospitalServiceImpl(String propertyFile) {
+        try {
+            this.conn = DBConnection.getConnection(propertyFile);
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new RuntimeException("Failed to load database connection from: " + propertyFile, e);
+        }
+    }
+
     public IHospitalServiceImpl() {
-        conn = DBConnection.getConnection(); // Assumes a working DBConnection class
+        this.conn = DBConnection.getConnection();        
     }
     
     
