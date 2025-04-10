@@ -1,11 +1,13 @@
 package dao;
 
 import entity.Vehicle;
+
 import entity.Customer;
 import entity.Lease;
 import entity.Payment;
 import exception.CarNotFoundException;
 import exception.CustomerNotFoundException;
+import exception.DataNotFoundException;
 import exception.LeaseNotFoundException;
 import util.DBConnection;
 
@@ -18,7 +20,7 @@ public class ICarLeaseRepositoryImpl implements ICarLeaseRepository {
     private Connection connection;
 
     // Constructor to establish the database connection
-    public ICarLeaseRepositoryImpl() {
+    public ICarLeaseRepositoryImpl() {                                      
         this.connection = DBConnection.getConnection();
     }
 
@@ -98,22 +100,35 @@ public class ICarLeaseRepositoryImpl implements ICarLeaseRepository {
     }
 
 
-    // Find car by ID
     @Override
-    public Vehicle findCarById(int carID) throws CarNotFoundException {
+    public Vehicle findCarById(int carId) throws DataNotFoundException {
         String query = "SELECT * FROM vehicle WHERE vehicle_id = ?";
-        try (PreparedStatement pstmt = connection.prepareStatement(query)) {
-            pstmt.setInt(1, carID);
-            ResultSet rs = pstmt.executeQuery();
-            if (rs.next()) {
-                return mapCar(rs);
-            } else {
-                throw new CarNotFoundException("Car with ID " + carID + " not found.");
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+
+            pstmt.setInt(1, carId);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                	return new Vehicle(
+                		    rs.getInt("vehicle_id"),
+                		    rs.getString("make"),
+                		    rs.getString("model"),
+                		    rs.getInt("year"),
+                		    rs.getDouble("daily_rate"),
+                		    rs.getString("status"),
+                		    rs.getInt("passenger_capacity"),
+                		    rs.getDouble("engine_capacity")
+                		);
+
+                } else {
+                    throw new DataNotFoundException("Car not found");
+                }
             }
+
         } catch (SQLException e) {
             e.printStackTrace();
+            throw new RuntimeException("Database error while retrieving car", e); // 💣 must rethrow
         }
-        return null;
     }
 
 
@@ -168,27 +183,31 @@ public class ICarLeaseRepositoryImpl implements ICarLeaseRepository {
     
 
     @Override
-    public Customer findCustomerById(int customerID) {
+    public Customer findCustomerById(int customerID) throws CustomerNotFoundException {
         String query = "SELECT * FROM Customer WHERE customer_id = ?";
-        try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+
             pstmt.setInt(1, customerID);
-            ResultSet rs = pstmt.executeQuery();
-            if (rs.next()) {
-                return mapCustomer(rs);
-            } else {
-                throw new CustomerNotFoundException("Customer with ID " + customerID + " not found.");
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return mapCustomer(rs);
+                } else {
+                    throw new CustomerNotFoundException("Customer with ID " + customerID + " not found.");
+                }
             }
-        } catch (SQLException | CustomerNotFoundException e) {
+
+        } catch (SQLException e) {
             e.printStackTrace();
+            throw new RuntimeException("Database error while retrieving customer", e);
         }
-        return null;
     }
 
-
-
+ 
 
 
     // Lease Management
+    
     @Override
     public Lease createLease(int customerID, int carID, Date startDate, Date endDate) {
         String query = "INSERT INTO lease (customer_id, vehicle_id, start_date, end_date, type) VALUES (?, ?, ?, ?, ?)";
@@ -201,9 +220,20 @@ public class ICarLeaseRepositoryImpl implements ICarLeaseRepository {
 
             int affectedRows = pstmt.executeUpdate();
             if (affectedRows > 0) {
+                // Step 1: Get the generated lease ID
                 try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
                     if (generatedKeys.next()) {
-                    	return new Lease(generatedKeys.getInt(1), customerID, carID, startDate, endDate, "Daily", 0.0);
+                        int leaseID = generatedKeys.getInt(1);
+
+                        // Step 2: Update vehicle status to 'notAvailable'
+                        String updateStatus = "UPDATE vehicle SET status = 'notAvailable' WHERE vehicle_id = ?";
+                        try (PreparedStatement statusStmt = connection.prepareStatement(updateStatus)) {
+                            statusStmt.setInt(1, carID);
+                            statusStmt.executeUpdate();
+                        }
+
+                        // Step 3: Return the created Lease object
+                        return new Lease(leaseID, customerID, carID, startDate, endDate, "Daily", 0.0);
                     }
                 }
             }
@@ -212,6 +242,8 @@ public class ICarLeaseRepositoryImpl implements ICarLeaseRepository {
         }
         return null;
     }
+
+    
     
 
 
@@ -314,6 +346,37 @@ public class ICarLeaseRepositoryImpl implements ICarLeaseRepository {
 
         return leases;
     }
+    
+    
+    //Task 10
+    @Override
+    public Lease getLeaseById(int leaseId) throws DataNotFoundException {
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement("SELECT * FROM Lease WHERE lease_id = ?")) {
+
+            stmt.setInt(1, leaseId);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                return new Lease(
+                    rs.getInt("lease_id"),
+                    rs.getInt("vehicle_id"),
+                    rs.getInt("customer_id"),
+                    rs.getDate("start_date"),
+                    rs.getDate("end_date"),
+                    rs.getString("type")
+                );
+            } else {
+                throw new DataNotFoundException("Lease not found");
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw new RuntimeException("Database error while retrieving lease", e); 
+        }
+    }
+
+
 
 
 
@@ -352,8 +415,10 @@ public class ICarLeaseRepositoryImpl implements ICarLeaseRepository {
         return payments;
     }
 
+    
+    
     @Override
-    public Payment findPaymentById(int paymentID) {
+    public Payment findPaymentById(int paymentID) throws DataNotFoundException{
         String sql = "SELECT * FROM payment WHERE payment_id = ?"; 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setInt(1, paymentID);
@@ -371,6 +436,8 @@ public class ICarLeaseRepositoryImpl implements ICarLeaseRepository {
         }
         return null; // Return null if payment not found
     }
+    
+    
 
     @Override
     public void recordPayment(Lease lease, double amount) {
@@ -426,7 +493,6 @@ public class ICarLeaseRepositoryImpl implements ICarLeaseRepository {
         );
     }
 
-
     
 
     // Map ResultSet to Payment object
@@ -438,6 +504,5 @@ public class ICarLeaseRepositoryImpl implements ICarLeaseRepository {
                 rs.getDouble("amount"));
     }
 
-	
 
 }
