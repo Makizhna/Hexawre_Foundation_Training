@@ -31,7 +31,7 @@ public class Main {
         	
         	 try {
                  // Test DB connection
-                 DBConnUtil.getConnection();
+                 DBConnUtil.getConnection("Test DB Connection");
              } catch (SQLException e) {
                  System.err.println("Connection test failed: " + e.getMessage());
              }
