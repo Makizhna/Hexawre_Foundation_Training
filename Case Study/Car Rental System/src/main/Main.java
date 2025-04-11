@@ -9,7 +9,7 @@ import entity.Vehicle;
 import exception.CarNotFoundException;
 import exception.CustomerNotFoundException;
 import exception.LeaseNotFoundException;
-import util.DBConnection;
+import util.DBConnUtil;
 
 import java.sql.Connection;
 import java.sql.Date;
@@ -18,8 +18,12 @@ import java.util.Scanner;
 
 public class Main {
     public static void main(String[] args) {
+    	
+    	String propertyFilePath = "src/dbconfig.properties"; // path to file
+    	Connection connection = DBConnUtil.getConnection(propertyFilePath);
+
         // Establish Database Connection
-        Connection connection = DBConnection.getConnection();
+    	//Connection connection = DBConnection.getConnection("src/dbconfig.properties");
         if (connection == null) {
             System.out.println("Database connection failed. Exiting...");
             return;
@@ -209,12 +213,10 @@ public class Main {
                         if (payment != null) {
                             System.out.println("Payment Details:\n" + payment);  
                         } else {
-                            System.out.println("❌ Payment not found.");
+                            System.out.println(" Payment not found.");
                         }
                         break;
 
-
-                        
 
                     case 15: // Exit
                         System.out.println("Exiting...");
