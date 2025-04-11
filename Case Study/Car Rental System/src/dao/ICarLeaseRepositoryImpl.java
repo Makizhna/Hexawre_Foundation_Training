@@ -9,19 +9,22 @@ import exception.CarNotFoundException;
 import exception.CustomerNotFoundException;
 import exception.DataNotFoundException;
 import exception.LeaseNotFoundException;
-import util.DBConnection;
+import util.DBConnUtil;
 
 import java.sql.*;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
 public class ICarLeaseRepositoryImpl implements ICarLeaseRepository {
 
     private Connection connection;
+    private static final String PROPERTY_FILE = "src/dbconfig.properties";
 
     // Constructor to establish the database connection
     public ICarLeaseRepositoryImpl() {                                      
-        this.connection = DBConnection.getConnection();
+    	    this.connection = util.DBConnUtil.getConnection(PROPERTY_FILE);
+
     }
 
     // Car Management
@@ -103,7 +106,7 @@ public class ICarLeaseRepositoryImpl implements ICarLeaseRepository {
     @Override
     public Vehicle findCarById(int carId) throws DataNotFoundException {
         String query = "SELECT * FROM vehicle WHERE vehicle_id = ?";
-        try (Connection conn = DBConnection.getConnection();
+        try (Connection conn = DBConnUtil.getConnection(PROPERTY_FILE);
              PreparedStatement pstmt = conn.prepareStatement(query)) {
 
             pstmt.setInt(1, carId);
@@ -127,7 +130,7 @@ public class ICarLeaseRepositoryImpl implements ICarLeaseRepository {
 
         } catch (SQLException e) {
             e.printStackTrace();
-            throw new RuntimeException("Database error while retrieving car", e); // 💣 must rethrow
+            throw new RuntimeException("Database error while retrieving car", e); 
         }
     }
 
@@ -185,7 +188,7 @@ public class ICarLeaseRepositoryImpl implements ICarLeaseRepository {
     @Override
     public Customer findCustomerById(int customerID) throws CustomerNotFoundException {
         String query = "SELECT * FROM Customer WHERE customer_id = ?";
-        try (Connection conn = DBConnection.getConnection();
+        try (Connection conn = DBConnUtil.getConnection("src/dbconfig.properties");
              PreparedStatement pstmt = conn.prepareStatement(query)) {
 
             pstmt.setInt(1, customerID);
@@ -210,36 +213,65 @@ public class ICarLeaseRepositoryImpl implements ICarLeaseRepository {
     
     @Override
     public Lease createLease(int customerID, int carID, Date startDate, Date endDate) {
-        String query = "INSERT INTO lease (customer_id, vehicle_id, start_date, end_date, type) VALUES (?, ?, ?, ?, ?)";
+        // Step 1: Define lease type and fetch rate
+        String leaseType = "Daily";  
+
+        double dailyRate = 0.0;
+        try {
+            // Get the car's daily rate from the database
+            String rateQuery = "SELECT daily_rate FROM vehicle WHERE vehicle_id = ?";
+            try (PreparedStatement rateStmt = connection.prepareStatement(rateQuery)) {
+                rateStmt.setInt(1, carID);
+                try (ResultSet rs = rateStmt.executeQuery()) {
+                    if (rs.next()) {
+                        dailyRate = rs.getDouble("daily_rate");
+                    } else {
+                        System.out.println("Car not found for rate calculation.");
+                        return null;
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return null;
+        }
+
+        // Step 2: Calculate duration and cost
+        long days = ChronoUnit.DAYS.between(startDate.toLocalDate(), endDate.toLocalDate());
+        double totalCost = days * dailyRate;
+
+        // Step 3: Insert into lease table including total cost
+        String query = "INSERT INTO lease (customer_id, vehicle_id, start_date, end_date, type, total_cost) VALUES (?, ?, ?, ?, ?, ?)";
+
         try (PreparedStatement pstmt = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
             pstmt.setInt(1, customerID);
             pstmt.setInt(2, carID);
             pstmt.setDate(3, startDate);
             pstmt.setDate(4, endDate);
-            pstmt.setString(5, "Daily");
+            pstmt.setString(5, leaseType);
+            pstmt.setDouble(6, totalCost);
 
             int affectedRows = pstmt.executeUpdate();
             if (affectedRows > 0) {
-                // Step 1: Get the generated lease ID
                 try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
                     if (generatedKeys.next()) {
                         int leaseID = generatedKeys.getInt(1);
 
-                        // Step 2: Update vehicle status to 'notAvailable'
+                        // Update vehicle status to 'notAvailable'
                         String updateStatus = "UPDATE vehicle SET status = 'notAvailable' WHERE vehicle_id = ?";
                         try (PreparedStatement statusStmt = connection.prepareStatement(updateStatus)) {
                             statusStmt.setInt(1, carID);
                             statusStmt.executeUpdate();
                         }
 
-                        // Step 3: Return the created Lease object
-                        return new Lease(leaseID, customerID, carID, startDate, endDate, "Daily", 0.0);
+                        return new Lease(leaseID, customerID, carID, startDate, endDate, leaseType, totalCost);
                     }
                 }
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
+
         return null;
     }
 
@@ -271,32 +303,51 @@ public class ICarLeaseRepositoryImpl implements ICarLeaseRepository {
     
     
 
+    @Override
     public List<Lease> listActiveLeases() {
         List<Lease> activeLeases = new ArrayList<>();
-        String query = "SELECT * FROM Lease WHERE end_date > CURDATE() "; 
+        String query = "SELECT * FROM Lease WHERE end_date > CURDATE()"; 
 
-        try (Connection conn = DBConnection.getConnection(); 
+        try (Connection conn = DBConnUtil.getConnection(PROPERTY_FILE); 
              PreparedStatement stmt = conn.prepareStatement(query);
              ResultSet rs = stmt.executeQuery()) {
 
-            boolean found = false; // Flag to check if leases exist
+            boolean found = false;
 
             while (rs.next()) {
-                found = true; // Mark that we found at least one lease
+                found = true;
 
-                Lease lease = new Lease(
-                    rs.getInt("lease_id"),
-                    rs.getInt("vehicle_id"),
-                    rs.getInt("customer_id"),
-                    rs.getDate("start_date"),
-                    rs.getDate("end_date"),
-                    rs.getString("type"),
-                    rs.getDouble("total_cost")
-                );
+                int leaseId = rs.getInt("lease_id");
+                int vehicleId = rs.getInt("vehicle_id");
+                int customerId = rs.getInt("customer_id");
+                Date startDate = rs.getDate("start_date");
+                Date endDate = rs.getDate("end_date");
+                String leaseType = rs.getString("type");
+
+                // Create Lease object
+                Lease lease = new Lease(leaseId, vehicleId, customerId, startDate, endDate, leaseType, 0.0);
+
+                // 🔹 Get daily_rate from vehicle table
+                double dailyRate = 0.0;
+                double monthlyRate = 1000.0; // Fallback monthly rate
+
+                try (PreparedStatement rateStmt = conn.prepareStatement("SELECT daily_rate FROM vehicle WHERE vehicle_id = ?")) {
+                    rateStmt.setInt(1, vehicleId);
+                    try (ResultSet rateRs = rateStmt.executeQuery()) {
+                        if (rateRs.next()) {
+                            dailyRate = rateRs.getDouble("daily_rate");
+                        }
+                    }
+                }
+
+                // 🔹 Calculate cost
+                lease.calculateTotalCost(dailyRate, monthlyRate);
+
+                // Add to list
                 activeLeases.add(lease);
 
-                // Print lease details for debugging
-                System.out.println("Found Lease: " + lease);
+                // Print for debugging
+                //System.out.println("Found Lease: " + lease);
             }
 
             if (!found) {
@@ -311,13 +362,12 @@ public class ICarLeaseRepositoryImpl implements ICarLeaseRepository {
     }
 
 
-
     
     public List<Lease> listLeaseHistory() {
         List<Lease> leases = new ArrayList<>();
         String query = "SELECT * FROM lease WHERE end_date < CURDATE()";  // Past leases
 
-        try (Connection conn = DBConnection.getConnection();
+        try (Connection conn = DBConnUtil.getConnection(PROPERTY_FILE);
              PreparedStatement pstmt = conn.prepareStatement(query);
              ResultSet rs = pstmt.executeQuery()) {
 
@@ -351,7 +401,7 @@ public class ICarLeaseRepositoryImpl implements ICarLeaseRepository {
     //Task 10
     @Override
     public Lease getLeaseById(int leaseId) throws DataNotFoundException {
-        try (Connection conn = DBConnection.getConnection();
+        try (Connection conn = DBConnUtil.getConnection(PROPERTY_FILE);
              PreparedStatement stmt = conn.prepareStatement("SELECT * FROM Lease WHERE lease_id = ?")) {
 
             stmt.setInt(1, leaseId);
