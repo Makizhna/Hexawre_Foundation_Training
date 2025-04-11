@@ -25,9 +25,16 @@ class CarLeaseSystemTest {
     @Test
     @DisplayName("Test: Car is created successfully")
     void testCarCreatedSuccessfully() {
-    	Vehicle car = new Vehicle(0, "Tesla", "Model 3", 2024, 4500.0, "Available", 5, 2.5);
-        assertDoesNotThrow(() -> db.addCar(car));
+        try {
+            Vehicle car = new Vehicle(0, "Tesla", "Model 3", 2024, 45.0, "Available", 5, 2.5);
+            db.addCar(car);
+            System.out.println("Test Passed: Car is created successfully → " + car);
+        } catch (Exception e) {
+            System.out.println("Test Failed: " + e.getMessage());
+            fail("Exception thrown while adding car");
+        }
     }
+
 
     @Test
     @DisplayName("Test: Lease is created successfully")
@@ -45,7 +52,7 @@ class CarLeaseSystemTest {
     @DisplayName("Test: Lease is retrieved successfully")
     void testLeaseRetrievedSuccessfully() {
         assertDoesNotThrow(() -> {
-            Lease lease = db.getLeaseById(1); // assuming lease with ID 1 exists
+            Lease lease = db.getLeaseById(1);              // assuming lease with ID 1 exists
             assertNotNull(lease);
         });
     }
@@ -54,7 +61,7 @@ class CarLeaseSystemTest {
     @DisplayName("Test: Exception thrown when Customer ID not found")
     void testCustomerIdNotFoundException() {
         CustomerNotFoundException thrown = assertThrows(CustomerNotFoundException.class, () -> {
-            db.findCustomerById(9999); // Make sure this ID really does NOT exist
+            db.findCustomerById(9999); 
         });
         assertTrue(thrown.getMessage().contains("Customer with ID"));
     }
