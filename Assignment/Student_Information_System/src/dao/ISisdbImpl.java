@@ -26,7 +26,7 @@ public class ISisdbImpl implements ISisdb {
         String checkEmailSQL = "SELECT COUNT(*) FROM students WHERE email = ?";
         String insertSQL = "INSERT INTO students (student_id, first_name, last_name, date_of_birth, email, phone_number) VALUES (?, ?, ?, ?, ?, ?)";
 
-        try (Connection conn = DBConnUtil.getConnection();
+        try (Connection conn = DBConnUtil.getConnection("Adding Student");
              PreparedStatement checkStmt = conn.prepareStatement(checkEmailSQL);
              PreparedStatement pstmt = conn.prepareStatement(insertSQL)) {
 
@@ -57,12 +57,11 @@ public class ISisdbImpl implements ISisdb {
 
 
     // Retrieve a student by ID
- // Retrieve a student by ID
     @Override
     public Student getStudentById(int studentId) throws StudentNotFoundException, SQLException {
         String sql = "SELECT * FROM Students WHERE student_id = ?";
 
-        try (Connection conn = DBConnUtil.getConnection();
+        try (Connection conn = DBConnUtil.getConnection("Get Student By ID");
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, studentId);
@@ -94,7 +93,7 @@ public class ISisdbImpl implements ISisdb {
         String sql = "SELECT * FROM Students";
         List<Student> students = new ArrayList<>();
 
-        try (Connection conn = DBConnUtil.getConnection();
+        try (Connection conn = DBConnUtil.getConnection("Get All Students");
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
 
@@ -125,7 +124,7 @@ public class ISisdbImpl implements ISisdb {
         String totalPaymentsQuery = "SELECT SUM(amount) AS total_paid FROM Payments WHERE student_id = ?";
         String updateBalanceQuery = "UPDATE Students SET balance = ? WHERE student_id = ?";
 
-        try (Connection conn = DBConnUtil.getConnection();
+        try (Connection conn = DBConnUtil.getConnection("Update Student Balance");
              PreparedStatement pstmtTotal = conn.prepareStatement(totalPaymentsQuery);
              PreparedStatement pstmtUpdate = conn.prepareStatement(updateBalanceQuery)) {
 
@@ -156,7 +155,7 @@ public class ISisdbImpl implements ISisdb {
     public void deleteStudent(int studentId) throws StudentNotFoundException, SQLException {
         String sql = "DELETE FROM students WHERE student_id = ?";
 
-        try (Connection conn = DBConnUtil.getConnection();
+        try (Connection conn = DBConnUtil.getConnection("Delete Student By ID");
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, studentId);
@@ -177,7 +176,7 @@ public class ISisdbImpl implements ISisdb {
         Student student = null;
 
         String query = "SELECT * FROM Students WHERE email = ?";
-        try (Connection conn = DBConnUtil.getConnection();
+        try (Connection conn = DBConnUtil.getConnection("Get Student By Email");
              PreparedStatement stmt = conn.prepareStatement(query)) {
 
             stmt.setString(1, email);
@@ -210,7 +209,7 @@ public class ISisdbImpl implements ISisdb {
  // Create a new course
     public void addCourse(Course course) throws SQLException {
         String sql = "INSERT INTO courses (course_id, course_name, credits, teacher_id) VALUES (?, ?, ?, ?)";
-        try (Connection conn = DBConnUtil.getConnection();
+        try (Connection conn = DBConnUtil.getConnection("New course is added");
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, course.getCourseId());
@@ -226,7 +225,7 @@ public class ISisdbImpl implements ISisdb {
 
     public Course getCourseById(String courseId) throws SQLException {
         String sql = "SELECT * FROM courses WHERE course_id = ?";
-        try (Connection conn = DBConnUtil.getConnection();
+        try (Connection conn = DBConnUtil.getConnection("Get All Courses");
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, courseId);
@@ -235,7 +234,7 @@ public class ISisdbImpl implements ISisdb {
             if (rs.next()) {
                 try {
                     Teacher instructor = new Teacher(
-                        rs.getInt("teacher_id"),  // ✅ corrected here
+                        rs.getInt("teacher_id"),  
                         "Dummy", "Instructor",
                         "dummy@teacher.com"
                     );
@@ -243,7 +242,7 @@ public class ISisdbImpl implements ISisdb {
                     return new Course(
                         rs.getString("course_id"),
                         rs.getString("course_name"),
-                        rs.getString("course_code"), // ⚠️ Make sure this column exists in DB!
+                        rs.getString("course_code"), 
                         rs.getInt("credits"),
                         instructor
                     );
@@ -260,7 +259,7 @@ public class ISisdbImpl implements ISisdb {
  // Update course details
     public void updateCourse(Course course) throws SQLException {
         String sql = "UPDATE courses SET course_name = ?, course_code = ?, credits = ?, teacher_id = ? WHERE course_id = ?";
-        try (Connection conn = DBConnUtil.getConnection();
+        try (Connection conn = DBConnUtil.getConnection("Update course details");
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, course.getCourseName());
@@ -282,7 +281,7 @@ public class ISisdbImpl implements ISisdb {
     // Delete course by ID
     public void deleteCourse(String courseId) throws SQLException {
         String sql = "DELETE FROM Courses WHERE course_id = ?";
-        try (Connection conn = DBConnUtil.getConnection();
+        try (Connection conn = DBConnUtil.getConnection("Delete course by ID");
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, courseId);
@@ -299,7 +298,7 @@ public class ISisdbImpl implements ISisdb {
                      "t.first_name, t.last_name, t.email " +
                      "FROM Courses c LEFT JOIN Teacher t ON c.teacher_id = t.teacher_id";
 
-        try (Connection conn = DBConnUtil.getConnection();
+        try (Connection conn = DBConnUtil.getConnection("All courses are listed here....");
              PreparedStatement pstmt = conn.prepareStatement(sql);
              ResultSet rs = pstmt.executeQuery()) {
 
@@ -336,7 +335,7 @@ public class ISisdbImpl implements ISisdb {
     // Task - 9 
     @Override
     public Course getCourseByCode(String code) throws SQLException, InvalidCourseDataException {
-    	Connection conn = DBConnUtil.getConnection();      // 
+    	Connection conn = DBConnUtil.getConnection("Get Course By Code");      
 
         String sql = "SELECT * FROM Courses WHERE course_code = ?";
         PreparedStatement stmt = conn.prepareStatement(sql);
@@ -344,7 +343,7 @@ public class ISisdbImpl implements ISisdb {
         ResultSet rs = stmt.executeQuery();
 
         if (rs.next()) {
-            String courseId = rs.getString("course_id");             // use String, not int
+            String courseId = rs.getString("course_id");             
             String title = rs.getString("course_name");
             String courseCode = rs.getString("course_code");
             int credits = rs.getInt("credits");
@@ -372,7 +371,7 @@ public class ISisdbImpl implements ISisdb {
 
             String sql = "INSERT INTO Enrollments (enrollment_id, student_id, course_id, enrollment_date) VALUES (?, ?, ?, ?)";
 
-            try (Connection conn = DBConnUtil.getConnection();
+            try (Connection conn = DBConnUtil.getConnection("Enroll Student In Course - Full Object");
                  PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
                 pstmt.setString(1, enrollmentId);
@@ -400,7 +399,7 @@ public class ISisdbImpl implements ISisdb {
             Course course = getCourseById(courseId);
 
             if (student != null && course != null) {
-                enrollStudentInCourse(student, course); // Call existing logic
+                enrollStudentInCourse(student, course);    // Call existing logic
             } else {
                 System.out.println(" Student or course not found.");
             }
@@ -417,7 +416,7 @@ public class ISisdbImpl implements ISisdb {
         List<Enrollment> enrollments = new ArrayList<>();
         String sql = "SELECT * FROM Enrollments WHERE student_id = ?";
 
-        try (Connection conn = DBConnUtil.getConnection();
+        try (Connection conn = DBConnUtil.getConnection("Get Enrollments By Student ID");
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, studentId);
@@ -447,7 +446,7 @@ public class ISisdbImpl implements ISisdb {
         List<Enrollment> enrollments = new ArrayList<>();
         String sql = "SELECT * FROM Enrollments WHERE course_id = ?";
 
-        try (Connection conn = DBConnUtil.getConnection();
+        try (Connection conn = DBConnUtil.getConnection("Get Enrollments By Course ID");
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, courseId);
@@ -471,11 +470,12 @@ public class ISisdbImpl implements ISisdb {
     }
 
     
+    // Teacher methods
     @Override
     public void addTeacher(Teacher teacher) {
         String sql = "INSERT INTO Teacher (teacher_id, first_name, last_name, email) VALUES (?, ?, ?, ?)";
 
-        try (Connection conn = DBConnUtil.getConnection();
+        try (Connection conn = DBConnUtil.getConnection("Add Teacher");
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, teacher.getTeacherId());
@@ -498,7 +498,7 @@ public class ISisdbImpl implements ISisdb {
     public void updateTeacher(Teacher teacher) {
         String sql = "UPDATE Teacher SET first_name = ?, last_name = ?, email = ? WHERE teacher_id = ?";
 
-        try (Connection conn = DBConnUtil.getConnection();
+        try (Connection conn = DBConnUtil.getConnection("Update Teacher");
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, teacher.getFirstName());
@@ -522,7 +522,7 @@ public class ISisdbImpl implements ISisdb {
         String sql = "SELECT * FROM Teacher WHERE teacher_id = ?";
         Teacher teacher = null;
 
-        try (Connection conn = DBConnUtil.getConnection();
+        try (Connection conn = DBConnUtil.getConnection("Get Teacher By ID");
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, teacherId);
@@ -548,7 +548,7 @@ public class ISisdbImpl implements ISisdb {
     @Override
     public Teacher getTeacherByEmail(String email) throws SQLException {
         String sql = "SELECT * FROM Teacher WHERE email = ?";
-        try (Connection conn = DBConnUtil.getConnection();
+        try (Connection conn = DBConnUtil.getConnection("Get Teacher By Email");
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, email);
             ResultSet rs = pstmt.executeQuery();
@@ -579,7 +579,7 @@ public class ISisdbImpl implements ISisdb {
         List<Teacher> teachers = new ArrayList<>();
         String sql = "SELECT * FROM Teacher";
 
-        try (Connection conn = DBConnUtil.getConnection();
+        try (Connection conn = DBConnUtil.getConnection("Get All Teachers");
              PreparedStatement pstmt = conn.prepareStatement(sql);
              ResultSet rs = pstmt.executeQuery()) {
 
@@ -605,7 +605,7 @@ public class ISisdbImpl implements ISisdb {
     public void assignCourseToTeacher(int teacherId, String courseId) {
         String sql = "UPDATE courses SET instructor_id = ? WHERE course_id = ?";
 
-        try (Connection conn = DBConnUtil.getConnection();
+        try (Connection conn = DBConnUtil.getConnection("Assigning Teacher to Course");
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, teacherId);
@@ -630,7 +630,7 @@ public class ISisdbImpl implements ISisdb {
         String insertSql = "INSERT INTO Payments (payment_id, student_id, amount, payment_date) VALUES (?, ?, ?, ?)";
         String updateBalanceSql = "UPDATE Students SET outstanding_balance = outstanding_balance - ? WHERE student_id = ?";
 
-        try (Connection conn = DBConnUtil.getConnection()) {
+        try (Connection conn = DBConnUtil.getConnection("Add Payment")) {
             conn.setAutoCommit(false); // Transaction start
 
             try (PreparedStatement insertStmt = conn.prepareStatement(insertSql);
@@ -664,7 +664,7 @@ public class ISisdbImpl implements ISisdb {
         List<Payment> payments = new ArrayList<>();
         String sql = "SELECT * FROM Payments WHERE student_id = ?";
 
-        try (Connection conn = DBConnUtil.getConnection();
+        try (Connection conn = DBConnUtil.getConnection("Get Payments By Student ID");
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, studentId);
@@ -698,7 +698,7 @@ public class ISisdbImpl implements ISisdb {
             WHERE e.course_id = ?
         """;
 
-        try (Connection conn = DBConnUtil.getConnection();
+        try (Connection conn = DBConnUtil.getConnection("Get Total Payments By Course ID");
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, courseId);
@@ -729,7 +729,7 @@ public class ISisdbImpl implements ISisdb {
                        "JOIN Courses c ON e.course_id = c.course_id " +
                        "WHERE c.course_name = ?";
 
-        try (Connection conn = DBConnUtil.getConnection();
+        try (Connection conn = DBConnUtil.getConnection("Get Enrollments By Course Name");
              PreparedStatement stmt = conn.prepareStatement(query)) {
 
             stmt.setString(1, courseName);
@@ -765,13 +765,6 @@ public class ISisdbImpl implements ISisdb {
         return enrollments;
     }
 
-
-	@Override
-	public void updateStudent(Student student)
-			throws InvalidStudentDataException, SQLException, exception.SQLException {
-		// TODO Auto-generated method stub
-		
-	}
 
 }
 
