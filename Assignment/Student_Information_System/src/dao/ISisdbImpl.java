@@ -1,4 +1,5 @@
 package dao;
+import java.sql.SQLException;
 
 import util.DBConnUtil;
 import util.DBPropertyUtil;
@@ -51,7 +52,7 @@ public class ISisdbImpl implements ISisdb {
                 throw new InvalidStudentDataException("Failed to insert student.");
             }
 
-            System.out.println(" Student added successfully!");
+            System.out.println("Student added successfully!");
         }
     }
 
@@ -75,7 +76,7 @@ public class ISisdbImpl implements ISisdb {
                         rs.getString("last_name"),
                         rs.getDate("date_of_birth"),
                         rs.getString("email"),
-                        rs.getString("phone_number") // corrected column name
+                        rs.getString("phone_number") 
                     );
                 } catch (InvalidStudentDataException e) {
                     throw new SQLException("Invalid student data found in database.", e);
@@ -170,7 +171,7 @@ public class ISisdbImpl implements ISisdb {
     }
     
     
-    
+    // get student by mail
     @Override
     public Student getStudentByEmail(String email) throws StudentNotFoundException, SQLException {
         Student student = null;
@@ -204,6 +205,45 @@ public class ISisdbImpl implements ISisdb {
     }
 
     
+    @Override
+    public void updateStudent(Student student)
+            throws InvalidStudentDataException, SQLException {
+
+        // Validate student data
+        if (student == null || student.getEmail() == null || !student.getEmail().contains("@")) {
+            throw new InvalidStudentDataException("Invalid student data provided.");
+        }
+
+        String updateQuery = "UPDATE Students SET first_name = ?, last_name = ?, date_of_birth = ?, email = ?, phone_number = ? WHERE student_id = ?";
+
+        try (Connection conn = DBConnUtil.getConnection("Update Student");
+             PreparedStatement stmt = conn.prepareStatement(updateQuery)) {
+
+            stmt.setString(1, student.getFirstName());
+            stmt.setString(2, student.getLastName());
+
+            // Convert java.util.Date to java.sql.Date
+            java.sql.Date sqlDob = new java.sql.Date(student.getDateOfBirth().getTime());
+            stmt.setDate(3, sqlDob);
+
+            stmt.setString(4, student.getEmail());
+            stmt.setString(5, student.getPhoneNumber());
+            stmt.setInt(6, student.getStudentId());
+
+            int rowsAffected = stmt.executeUpdate();
+            if (rowsAffected > 0) {
+                System.out.println("Student updated successfully.");
+            } else {
+                System.out.println("No student found with ID: " + student.getStudentId());
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw new SQLException("Error while updating student: " + e.getMessage());
+        }
+    }
+
+    
     
  
  // Create a new course
@@ -222,7 +262,8 @@ public class ISisdbImpl implements ISisdb {
         }
     }
 
-
+    
+    // get course by id
     public Course getCourseById(String courseId) throws SQLException {
         String sql = "SELECT * FROM courses WHERE course_id = ?";
         try (Connection conn = DBConnUtil.getConnection("Get All Courses");
@@ -256,7 +297,7 @@ public class ISisdbImpl implements ISisdb {
     }
 
     
- // Update course details
+    // Update course details
     public void updateCourse(Course course) throws SQLException {
         String sql = "UPDATE courses SET course_name = ?, course_code = ?, credits = ?, teacher_id = ? WHERE course_id = ?";
         try (Connection conn = DBConnUtil.getConnection("Update course details");
@@ -289,6 +330,7 @@ public class ISisdbImpl implements ISisdb {
             System.out.println(rows > 0 ? "Course deleted successfully!" : "No course found to delete.");
         }
     }
+    
 
     // List all courses
     @Override
@@ -303,11 +345,11 @@ public class ISisdbImpl implements ISisdb {
              ResultSet rs = pstmt.executeQuery()) {
 
             while (rs.next()) {
-                // Construct the teacher object
+                // Constructing the teacher object
                 Teacher instructor = null;
                 int teacherId = rs.getInt("teacher_id");
 
-                if (teacherId != 0) { // check if teacher_id is not null
+                if (teacherId != 0) {         // check if teacher_id is not null
                     instructor = new Teacher(
                         teacherId,
                         rs.getString("first_name"),
@@ -331,6 +373,7 @@ public class ISisdbImpl implements ISisdb {
 
         return courses;
     }
+    
     
     // Task - 9 
     @Override
@@ -359,7 +402,7 @@ public class ISisdbImpl implements ISisdb {
 
 
     
-    
+    //enroll student in course
     @Override
     public void enrollStudentInCourse(Student student, Course course) {
         String enrollmentId = UUID.randomUUID().toString();              // Generate unique ID
@@ -573,7 +616,7 @@ public class ISisdbImpl implements ISisdb {
     }
 
     
-
+    // get all teachers
     @Override
     public List<Teacher> getAllTeachers() {
         List<Teacher> teachers = new ArrayList<>();
@@ -601,58 +644,45 @@ public class ISisdbImpl implements ISisdb {
     }
     
     
-    @Override
-    public void assignCourseToTeacher(int teacherId, String courseId) {
-        String sql = "UPDATE courses SET instructor_id = ? WHERE course_id = ?";
-
-        try (Connection conn = DBConnUtil.getConnection("Assigning Teacher to Course");
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setInt(1, teacherId);
-            pstmt.setString(2, courseId);
-
-            int rows = pstmt.executeUpdate();
-            if (rows > 0) {
-                System.out.println("Teacher assigned to course successfully.");
-            }
-
-        } catch (SQLException e) {
-            System.err.println("Error assigning teacher to course: " + e.getMessage());
-        }
-    }
-
     
     
     //Payment
-    
     @Override
     public void addPayment(Payment payment) throws PaymentValidationException {
-        String insertSql = "INSERT INTO Payments (payment_id, student_id, amount, payment_date) VALUES (?, ?, ?, ?)";
+        String insertSql = "INSERT INTO Payments (student_id, amount, payment_date) VALUES (?, ?, ?)";
         String updateBalanceSql = "UPDATE Students SET outstanding_balance = outstanding_balance - ? WHERE student_id = ?";
 
         try (Connection conn = DBConnUtil.getConnection("Add Payment")) {
             conn.setAutoCommit(false); // Transaction start
 
-            try (PreparedStatement insertStmt = conn.prepareStatement(insertSql);
-                 PreparedStatement updateBalanceStmt = conn.prepareStatement(updateBalanceSql)) {
-
-                insertStmt.setInt(1, payment.getPaymentId());
-                insertStmt.setInt(2, payment.getStudent().getStudentId());
-                insertStmt.setDouble(3, payment.getPaymentAmount());
-                insertStmt.setDate(4, new java.sql.Date(payment.getPaymentDate().getTime()));
+            try (
+                PreparedStatement insertStmt = conn.prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS);
+                PreparedStatement updateBalanceStmt = conn.prepareStatement(updateBalanceSql)
+            ) {
+                insertStmt.setInt(1, payment.getStudent().getStudentId());
+                insertStmt.setDouble(2, payment.getPaymentAmount());
+                insertStmt.setDate(3, new java.sql.Date(payment.getPaymentDate().getTime()));
                 insertStmt.executeUpdate();
+
+                // Retrieve generated payment_id
+                ResultSet generatedKeys = insertStmt.getGeneratedKeys();
+                if (generatedKeys.next()) {
+                    int newId = generatedKeys.getInt(1);
+                    payment.setPaymentId(newId); // optional: set in object for further use
+                }
 
                 updateBalanceStmt.setDouble(1, payment.getPaymentAmount());
                 updateBalanceStmt.setInt(2, payment.getStudent().getStudentId());
                 updateBalanceStmt.executeUpdate();
 
-                conn.commit(); // Success
+                conn.commit(); // Transaction success
             } catch (Exception e) {
-                conn.rollback(); // Revert changes if anything fails
+                conn.rollback(); // Rollback if anything fails
                 throw new PaymentValidationException("Failed to add payment and update balance: " + e.getMessage());
             }
         } catch (SQLException e) {
             System.err.println("Database error during payment: " + e.getMessage());
+            // Optional: throw custom exception here if you want to notify higher layers
         }
     }
 
@@ -765,14 +795,54 @@ public class ISisdbImpl implements ISisdb {
         return enrollments;
     }
 
+    
+	
+	
+	// Assuming this method assigns a teacher to a course
+	public void assignCourseToTeacher(Course course, Teacher teacher) {
+	    if (course.getInstructor() != null) {
+	        // Get the teacher ID from the course's instructor
+	        int teacherId = course.getInstructor().getTeacherId();
+	        
+	        // Proceed with assigning the teacher to the course
+	        String updateQuery = "UPDATE Courses SET teacher_id = ? WHERE course_id = ?";
+	        
+	        try (Connection conn = DBConnUtil.getConnection("Assign Course to teacher");
+	             PreparedStatement stmt = conn.prepareStatement(updateQuery)) {
+	            stmt.setInt(1, teacherId);
+	            stmt.setString(2, course.getCourseId());
+	            stmt.executeUpdate();
+	            System.out.println("Teacher assigned successfully.");
+	        } catch (SQLException e) {
+	            e.printStackTrace();
+	            System.out.println("Error assigning teacher to course: " + e.getMessage());
+	        }
+	    } else {
+	        // Handle the case where the course has no instructor assigned yet
+	        System.out.println("No instructor assigned to this course. Please assign an instructor.");
+	    }
+	}
+	
+
+	// Overrides the interface method to assign a teacher to a course using IDs
+	@Override
+	public void assignCourseToTeacher(int teacherId, String courseId) {
+	    String updateQuery = "UPDATE Courses SET teacher_id = ? WHERE course_id = ?";
+
+	    try (Connection conn = DBConnUtil.getConnection("Assign Course to teacher");
+	         PreparedStatement stmt = conn.prepareStatement(updateQuery)) {
+	        stmt.setInt(1, teacherId);
+	        stmt.setString(2, courseId);
+	        stmt.executeUpdate();
+	        System.out.println("Teacher assigned successfully.");
+	    } catch (SQLException e) {
+	        e.printStackTrace();
+	        System.out.println("Error assigning teacher to course: " + e.getMessage());
+	    }
+	}
+
+
 
 }
 
 
-
-
-
-
-   
-  
-   
