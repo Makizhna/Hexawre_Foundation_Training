@@ -19,7 +19,7 @@ import java.util.Scanner;
 public class Main {
     public static void main(String[] args) {
     	
-    	String propertyFilePath = "src/dbconfig.properties"; // path to file
+    	String propertyFilePath = "src/dbconfig.properties";                              // path to the file
     	Connection connection = DBConnUtil.getConnection(propertyFilePath);
 
         // Establish Database Connection
@@ -55,7 +55,7 @@ public class Main {
             System.out.print("Enter your choice: ");
 
             int choice = scanner.nextInt();
-            scanner.nextLine();                         // Consume newline
+            scanner.nextLine();                         
 
             try {
                 switch (choice) {
@@ -216,7 +216,7 @@ public class Main {
                             System.out.println(" Payment not found.");
                         }
                         break;
-
+  
 
                     case 15: // Exit
                         System.out.println("Exiting...");
