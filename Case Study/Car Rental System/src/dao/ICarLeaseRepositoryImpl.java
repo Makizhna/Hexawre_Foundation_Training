@@ -184,7 +184,7 @@ public class ICarLeaseRepositoryImpl implements ICarLeaseRepository {
     }
     
     
-
+    // find customer by id
     @Override
     public Customer findCustomerById(int customerID) throws CustomerNotFoundException {
         String query = "SELECT * FROM Customer WHERE customer_id = ?";
@@ -208,9 +208,7 @@ public class ICarLeaseRepositoryImpl implements ICarLeaseRepository {
 
  
 
-
     // Lease Management
-    
     @Override
     public Lease createLease(int customerID, int carID, Date startDate, Date endDate) {
         // Step 1: Define lease type and fetch rate
@@ -275,10 +273,8 @@ public class ICarLeaseRepositoryImpl implements ICarLeaseRepository {
         return null;
     }
 
-    
-    
-
-
+ 
+    // return car when it is available
     @Override
     public void returnCar(int leaseID) throws LeaseNotFoundException {
         String carQuery = "UPDATE vehicle SET status = 'available' WHERE vehicle_id = (SELECT vehicle_id FROM lease WHERE lease_id = ?)";
@@ -327,7 +323,7 @@ public class ICarLeaseRepositoryImpl implements ICarLeaseRepository {
                 // Create Lease object
                 Lease lease = new Lease(leaseId, vehicleId, customerId, startDate, endDate, leaseType, 0.0);
 
-                // 🔹 Get daily_rate from vehicle table
+                //  Get daily_rate from vehicle table
                 double dailyRate = 0.0;
                 double monthlyRate = 1000.0; // Fallback monthly rate
 
@@ -340,7 +336,7 @@ public class ICarLeaseRepositoryImpl implements ICarLeaseRepository {
                     }
                 }
 
-                // 🔹 Calculate cost
+                //  Calculate cost
                 lease.calculateTotalCost(dailyRate, monthlyRate);
 
                 // Add to list
@@ -362,7 +358,7 @@ public class ICarLeaseRepositoryImpl implements ICarLeaseRepository {
     }
 
 
-    
+    // List the lease history
     public List<Lease> listLeaseHistory() {
         List<Lease> leases = new ArrayList<>();
         String query = "SELECT * FROM lease WHERE end_date < CURDATE()";  // Past leases
@@ -381,11 +377,11 @@ public class ICarLeaseRepositoryImpl implements ICarLeaseRepository {
                     rs.getString("type")
                 );
 
-                // 🔹 Fetch rates (Replace with actual DB query)
+                //  Fetch rates (Replace with actual DB query)
                 double dailyRate = 50.0;
                 double monthlyRate = 1000.0;
 
-                // 🔹 Calculate Total Cost
+                //  Calculate Total Cost
                 lease.calculateTotalCost(dailyRate, monthlyRate);
 
                 leases.add(lease);
@@ -427,17 +423,14 @@ public class ICarLeaseRepositoryImpl implements ICarLeaseRepository {
     }
 
 
-
-
-
     
- // Payment Handling
+   // Payment Handling
     @Override
     public void makePayment(Payment payment) {
         String query = "INSERT INTO payment (lease_id, payment_date, amount) VALUES (?, ?, ?)";
         try (PreparedStatement pstmt = connection.prepareStatement(query)) {
             pstmt.setInt(1, payment.getLeaseID());
-            pstmt.setDate(2, new java.sql.Date(System.currentTimeMillis())); // Current date
+            pstmt.setDate(2, new java.sql.Date(System.currentTimeMillis()));      // Current date
             pstmt.setDouble(3, payment.getAmount());
             pstmt.executeUpdate();
         } catch (SQLException e) {
@@ -502,8 +495,8 @@ public class ICarLeaseRepositoryImpl implements ICarLeaseRepository {
         }
     }
 
+    
     // Utility methods for mapping ResultSet to objects
-
     // Map ResultSet to Vehicle object
     private Vehicle mapCar(ResultSet rs) throws SQLException {
         return new Vehicle(
