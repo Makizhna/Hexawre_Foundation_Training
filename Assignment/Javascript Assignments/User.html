@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <input type="text" id="userInput" placeholder="Type something">
+  <button onclick="display()">Show</button>
+  <p id="displayArea"></p>
+
+  <script>
+    function display() {
+      const input = document.getElementById("userInput").value;
+      document.getElementById("displayArea").innerText = input;
+    }
+  </script>
+</body>
+</html>

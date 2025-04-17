@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <button onclick="toggle()">Toggle Box</button>
+  <div id="box" style="width:100px; height:100px; background:tomato; margin-top:10px;"></div>
+
+  <script>
+    function toggle() {
+      const box = document.getElementById("box");
+      if (box.style.display === "none") {
+        box.style.display = "block";
+      } else {
+        box.style.display = "none";
+      }
+    }
+  </script>
+</body>
+</html>
